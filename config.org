@@ -1,0 +1,1637 @@
+#+TITLE: Doom Emacs Configuration
+:PROPERTIES:
+:header-args: :tangle yes
+:END:
+
+* fun icons here
+                 󰼾 󰃦 󰶴 󰅶 󰙴 󰇥 󰇦 󰉊 󰊤 󰽜 
+
+https://www.nerdfonts.com/cheat-sheet
+
+* Non-emacs related
+:PROPERTIES:
+:VISIBILITY: folded
+:END:
+
+** Vimium
+#+begin_src
+# Insert your preferred key mappings here.
+unmap d
+map d removeTab
+
+unmap u
+map u restoreTab
+
+map <c-d> scrollPageDown
+map <c-u> scrollPageUp
+
+map r reload
+
+unmap b
+map b Vomnibar.activateTabSelection
+#+end_src
+
+** Android studio ideavimrc file:~/.ideavimrc
+
+Need to remove UsageGrouping.Directory (search for it) keybinding in preferences -> keymap
+so that C-p works for navigating up a list of suggestions
+
+Good for finding action ids: SearchEverywhere (<leader> F or shift-shift (defualt)) -> IdeaVim: Track Action Ids
+#+begin_src vimscript :tangle ~/.ideavimrc
+source ~/.vimrc
+
+set quickscope
+
+map set clipboard+=unnamedplus
+imap kj <Esc>
+set timeoutlen=500
+
+map <leader>gr <Action>(Vcs.RollbackChangedLines)
+map <leader>cr <Action>(RenameElement)
+map gI <Action>(GotoImplementation)
+
+map <leader>ca <Action>(ShowIntentionActions)
+map <leader>G <Action>(FindInPath)
+map <leader>F <Action>(SearchEverywhere)
+map <M-x> <Action>(GotoAction)
+#+end_src
+
+** Amethyst config: file:~/.amethyst.yml
+#+begin_src yaml :tangle ~/.amethyst.yml :comments no
+mod3:
+    - command
+    - shift
+
+layouts:
+    - fullscreen
+    - two-pane
+    - floating
+
+floating:
+    - com.apple.finder
+    - keybase.Electron
+    - com.postmanlabs.mac
+    - com.spotify.client
+    - com.valesoftware.steam
+    - com.hnc.Discord
+    - com.apple.ActivityMonitor
+    - com.apple.systempreferences
+    - com.apple.FaceTime
+    - com.docker.docker
+    - com.electron.dockerdesktop
+
+mouse-follows-focus: true
+
+shrink-main:
+    mod: mod1
+    key: j
+
+expand-main:
+    mod: mod1
+    key: k
+
+focus-ccw:
+    mod: mod1
+    key: h
+
+focus-cw:
+    mod: mod1
+    key: l
+#+end_src
+
+* snippets
+
+** org-snippets file:~/.doom.d/snippets/org-mode/
+Need to compile these via +snippets/find-private or something
+#+begin_src :tangle ~/.doom.d/snippets/org-mode/properties :mkdirp yes
+# -*- mode: snippet -*-
+# name: org-properties
+# key: <p
+# uuid: <p
+# --
+:PROPERTIES:
+:$0
+:END:
+#+end_src
+
+* file:~/.doom.d/config.el
+:PROPERTIES:
+:header-args: :tangle ~/.doom.d/config.el :noeval
+:END:
+** Name and email
+
+#+begin_src elisp
+(setq user-full-name "NAME"
+      user-mail-address "EMAIL")
+#+end_src
+
+** Frame/Window stuff
+
+Start up maximized and add frame transparency
+#+begin_src elisp
+;;(add-hook 'window-setup-hook #'toggle-frame-maximized) ;; this doesn't play wery with amethyst
+;;(set-frame-parameter nil 'alpha  '70)
+(defun my/set-frame-alpha (&optional arg)
+  (if
+      (and arg (not (string-empty-p arg)))
+      (set-frame-parameter nil 'alpha  (string-to-number arg))
+    (set-frame-parameter nil 'alpha 90)))
+
+(defun my/interactive-set-frame-alpha (&optional arg)
+  (interactive "sFrame Alpha? ")
+  (my/set-frame-alpha arg))
+
+(evil-define-command my/evil-set-frame-alpha (&optional arg)
+  (interactive "<a>")
+  (my/set-frame-alpha arg))
+
+(evil-ex-define-cmd "set-alpha" #'my/evil-set-frame-alpha)
+(add-to-list 'default-frame-alist '(alpha . 90 ))
+(setq frame-alpha-lower-limit 70)
+#+end_src
+
+Scroll margin
+#+begin_src elisp
+(setq scroll-margin 8)
+#+end_src
+
+** Font and Theme
+*** Theme
+:PROPERTIES:
+:VISIBILITY: folded
+:END:
+
+There are two ways to load a theme. Both assume the theme is installed and available.
+You can either set ~doom-theme~ or manually load a theme with the ~load-theme~ function.
+This is the default:
+file:~/.config/doom/themes
+
+**** safe themes
+#+begin_src elisp
+(setq custom-safe-themes
+   '("b2779867957a4b9de84bcd33c5ded92e943c710c4c5c5b7fc874786eaf63ca5c" "d395c1793e0d64797d711c870571a0033174ca321ed48444efbe640bf692bf4f" "11873c4fbf465b956889adfa9182495db3bf214d9a70c0f858f07f6cc91cbd47" "f82e68d489e6c21c9552c4e8e35a03d126d9eba632a8e7b4f9329d1374b4a19c" "eb7cd622a0916358a6ef6305e661c6abfad4decb4a7c12e73d6df871b8a195f8" "02f57ef0a20b7f61adce51445b68b2a7e832648ce2e7efb19d217b6454c1b644" "51ec7bfa54adf5fff5d466248ea6431097f5a18224788d0bd7eb1257a4f7b773" "285d1bf306091644fb49993341e0ad8bafe57130d9981b680c1dbd974475c5c7" "f5b6be56c9de9fd8bdd42e0c05fecb002dedb8f48a5f00e769370e4517dde0e8" "00445e6f15d31e9afaa23ed0d765850e9cd5e929be5e8e63b114a3346236c44c" "4c56af497ddf0e30f65a7232a8ee21b3d62a8c332c6b268c81e9ea99b11da0d3" default))
+#+end_src
+
+**** Modus settings
+#+begin_src elisp :tangle no
+;; (setq modus-themes-headings
+;;                   '((0 . (variable-pitch light (height 1.9)))
+;;                     (1 . (variable-pitch light (height 1.6) overline))
+;;                     (2 . (variable-pitch regular (height 1.4) overline))
+;;                     (3 . (variable-pitch regular (height 1.3) overline))
+;;                     (4 . (rainbow (height 1.2)))
+;;                     (5 . (rainbow (height 1.1)))
+;;                     (t . (variable-pitch extrabold (height 1.05)))))
+
+;; (setq git-gutter:added-sign " ")
+
+;; (after! modus-themes
+;;   (modus-themes-with-colors
+;;     (custom-set-faces
+;;       `(git-gutter-fr:added ((,c :foreground ,bg-added-fringe)))
+;;       `(git-gutter-fr:deleted ((,c :foreground ,bg-removed-fringe)))
+;;       `(git-gutter-fr:modified ((,c :foreground ,bg-changed-fringe))))))
+#+end_src
+
+**** Solarized
+#+begin_src elisp
+(load-theme 'solarized-gruvbox-light t)
+(setq solarized-scale-org-headlines t)
+(setq solarized-height-minus-1 0.9)
+(setq solarized-height-plus-1 1.0)
+(setq solarized-height-plus-2 1.1)
+(setq solarized-height-plus-3 1.2)
+(setq solarized-height-plus-4 1.3)
+#+end_src
+
+*** Font
+**** help text
+:PROPERTIES:
+:VISIBILITY: folded
+:END:
+
+Doom exposes five (optional) variables for controlling fonts in Doom:
+
+- ~doom-font~ -- the primary font to use
+- ~doom-variable-pitch-font~ -- a non-monospace font (where applicable)
+- ~doom-big-font~ -- used for ~doom-big-font-mode~; use this for
+  presentations or streaming.
+- ~doom-unicode-font~ -- for unicode glyphs
+- ~doom-serif-font~ -- for the ~fixed-pitch-serif~ face
+
+See ~C-h v doom-font~ for documentation and more examples of what they
+accept. For example:
+
+If you or Emacs can't find your font, use ~M-x describe-font~ to look them
+up, ~M-x eval-region~ to execute elisp code, and ~M-x doom/reload-font~ to
+refresh your font settings. If Emacs still can't find your font, it likely
+wasn't installed correctly. Font issues are rarely Doom issues!
+
+**** code
+#+begin_src elisp
+(setq doom-font (font-spec :family "Iosevka Custom" :size 16))
+(setq doom-variable-pitch-font (font-spec :family "Iosevka Etoile" :size 16))
+(setq! doom-unicode-font (font-spec :family "FiraCode Nerd Font"))
+#+end_src
+
+** Line numbers and indentation :TinyMac:
+This determines the style of line numbers in effect. If set to nil', line
+numbers are disabled. For relative line numbers, set this to `relative'.
+
+#+begin_src elisp
+(setq display-line-numbers-type nil)
+(if (string= (system-name) "Jasons-MacBook.local")
+    (progn
+      (+global-word-wrap-mode -1))
+  (progn
+    (+global-word-wrap-mode)))
+#+end_src
+
+because we have indent highlight off on tiny mac set the indent width to be larger so its more obvious
+#+begin_src elisp
+(setq-default tab-width 4)
+(setq indent-line-function 'insert-tab)
+#+end_src
+
+** general emacs stuff
+
+*** Auto save on *switching buffer*
+*Find file* called with *projectile-find-file* and *vertico/project-search*
+Auto save on *workspace switching* too
+
+#+begin_src elisp
+(defadvice switch-to-buffer (before save-buffer-now activate)
+  (when buffer-file-name (save-buffer)))
+(defadvice find-file (before save-buffer-now activate)
+  (when buffer-file-name (save-buffer)))
+
+(defadvice other-window (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+(defadvice windmove-right (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+(defadvice windmove-left (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+(defadvice windmove-down (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+(defadvice windmove-up (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+
+(defadvice +workspace/cycle (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+(defadvice +workspace/switch-to (before other-window-now activate)
+  (when buffer-file-name (save-buffer)))
+
+(defadvice other-frame (before other-frame-now activate)
+  (when buffer-file-name (save-buffer)))
+#+end_src
+
+** qol
+
+*** evil quickscope
+need to turn off evil-snipe-override-mode
+#+begin_src elisp
+(global-evil-quickscope-mode +1)
+;; don't cross lines, also won't cross visual lines
+(setq evil-cross-lines nil)
+(setq evil-quickscope-cross-lines nil)
+
+(evil-snipe-mode +1)
+(evil-snipe-override-mode -1)
+(evil-snipe-override-local-mode -1)
+
+(map! :after evil-snipe
+      :map evil-quickscope-mode-map
+      :m "t" nil
+      :m "T" nil
+      :m "f" #'evil-quickscope-find-char
+      :m "F" #'evil-quickscope-find-char-backward
+      :m "t" #'evil-snipe-f
+      :m "T" #'evil-snipe-F
+)
+#+end_src
+
+*** prism colors :TinyMac:
+#+begin_src elisp
+(defun prism-colors-solarized ()
+  (interactive)
+  (prism-set-colors :num 24
+    :desaturations '(0) :lightens '(0)
+    :colors (list 'all-the-icons-lblue 'font-lock-string-face 'font-lock-keyword-face 'ansi-color-magenta 'font-lock-builtin-face 'font-lock-type-face )
+    :comments-fn (lambda (color)
+                   (-->
+                    (prism-blend color (face-attribute 'font-lock-comment-face :foreground) 0.40)))
+    :strings-fn (lambda (color)
+                  (--> color
+                       (color-desaturate-name it 25)
+                       (prism-blend it (face-attribute 'default :background) 0.70)))
+  )
+)
+(after! prism (prism-colors-solarized))
+(map! :after prism
+      :leader "pmm" #'prism-mode)
+(map! :after prism
+      :leader "pmw" #'prism-whitespace-mode)
+
+(when (not (string= (system-name) "Jasons-MacBook.local"))
+  (progn
+    ;;(fset 'rainbow-delimiters-mode #'prism-mode)
+    (add-hook 'emacs-lisp-mode-hook 'prism-mode)
+    (add-hook 'go-mode-hook 'prism-mode)
+    (add-hook 'json-mode-hook 'prism-mode)
+    (add-hook 'terraform-mode-hook 'prism-mode)
+    (add-hook 'web-mode-hook 'prism-whitespace-mode)
+
+    (add-hook 'python-mode-hook 'prism-whitespace-mode)))
+#+end_src
+
+*** thicker git gutter
+#+begin_src elisp
+(after! git-gutter-fringe
+  ;; I think this fixes the gutter disappearing issue: https://github.com/doomemacs/doomemacs/issues/4369
+  (setq-default left-margin-width 1)
+  (set-window-buffer nil (current-buffer))
+
+  ;; standardize default fringe width
+  ;; (if (fboundp 'fringe-mode) (fringe-mode '(8 . 8)))
+  ;; thin fringe bitmaps
+  (define-fringe-bitmap 'git-gutter-fr:added [#b111111] nil nil '(center repeated))
+  (define-fringe-bitmap 'git-gutter-fr:modified [#b111111] nil nil '(center repeated))
+  (define-fringe-bitmap 'git-gutter-fr:deleted [#b111111] nil nil '(center repeated))
+)
+#+end_src
+
+*** easier messages buffer
+#+begin_src elisp
+(evil-ex-define-cmd "mm" 'view-echo-area-messages)
+#+end_src
+
+*** zoom
+#+begin_src elisp
+(use-package zoom
+  :config
+  (setq zoom-size '(0.618 . 0.618)
+        zoom-ignored-major-modes '(dired-mode vterm-mode help-mode helpful-mode rxt-help-mode help-mode-menu org-mode)
+        zoom-ignored-buffer-names '("*doom:scratch*" "*info*" "*helpful variable: argv*")
+        zoom-ignored-buffer-name-regexps '("^\\*calc" "\\*helpful variable: .*\\*")
+        zoom-ignore-predicates (list (lambda () (< (count-lines (point-min) (point-max)) 20)))))
+
+(evil-ex-define-cmd "zm" 'zoom-mode)
+(define-key evil-normal-state-map (kbd "SPC zm") 'zoom-mode)
+
+(plist-put +popup-defaults :select t)
+;; workaround popup rule for Messages buffer and stuff so that :select t makes it so zoom doesn't break
+(set-popup-rule! "^\\*\\(?:[Cc]ompil\\(?:ation\\|e-Log\\)\\|Messages\\)" :side 'bottom :size 0.3 :width 40 :height 0.3 :vslot -2 :quit t :select t :autosave t :parameters '((transient . t) (no-other-window . t)))
+#+end_src
+
+*** git gutter update interval
+#+begin_src elisp
+(setq git-gutter:update-interval 1)
+#+end_src
+
+*** ispell
+#+begin_src elisp
+(setq ispell-program-name (concat (getenv "HOMEBREW_PREFIX") "/bin/aspell"))
+#+end_src
+
+*** peek
+really convenient package to store a region in any buffer and open an in-current-buffer peek "window"
+
+"view-peek" for vp lol
+#+begin_src elisp
+(use-package! peek
+  :config
+  (progn
+    (setq peek-overlay-distance 1)
+    (map! :leader "vp" #'peek-overlay-dwim)))
+#+end_src
+
+*** EPUB reader nov
+
+#+begin_src elisp
+(add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
+#+end_src
+
+*** Visual Line Fringe indicator alist
+for some reason my fringe indicators are gone
+https://www.reddit.com/r/DoomEmacs/comments/ozbz9o/disabling_word_wrapping_everywhere/
+
+jk it's cause of visual line mode
+honestly this we don't really need it but I'm leaving this here in case we want to change it later
+#+begin_src elisp
+(setq visual-line-fringe-indicators '(nil nil))
+#+end_src
+
+*** avy timeout
+just a slightly feels better than 0.5 I dunno
+#+begin_src elisp
+(setq avy-timeout-seconds 0.4)
+#+end_src
+
+*** indent guides and stuff :TinyMac:
+#+begin_src elisp
+(when (not (string= (system-name) "Jasons-MacBook.local"))
+    (progn
+        (setq highlight-indent-guides-auto-character-face-perc 35)
+        (setq highlight-indent-guides-auto-top-character-face-perc 70)
+        (setq highlight-indent-guides-method 'bitmap)
+        (setq highlight-indent-guides-responsive 'top)
+        (add-hook! 'prog-mode-hook (if (not (bound-and-true-p indent-tabs-mode)) (indent-bars-mode) (highlight-indent-guides-mode)))
+        (add-hook! 'html-mode-hook (if (not (bound-and-true-p indent-tabs-mode)) (indent-bars-mode)))
+    )
+)
+#+end_src
+
+** Development
+*** fix lookup :Doom:
+#+begin_src elisp
+(eval-after-load "lookup"
+  (lambda ()
+    (defun +lookup-project-search-backend-fn (identifier)
+      "Conducts a simple project text search for IDENTIFIER.
+
+  Uses and requires `+ivy-file-search', `+helm-file-search', or `+vertico-file-search'.
+  Will return nil if neither is available. These require ripgrep to be installed."
+      (when identifier
+        (let ((query (rxt-quote-pcre identifier)))
+          (ignore-errors
+            (cond ((modulep! :completion ivy)
+                   (+ivy-file-search :query query)
+                   t)
+                  ((modulep! :completion helm)
+                   (+helm-file-search :query query)
+                   t)
+                  ((modulep! :completion vertico)
+                   (+vertico-file-search :query query)
+                   t)
+                  )
+            )
+          )
+        )
+      )
+    )
+  )
+
+(defun my/reference-lookup (identifier)
+  (+default/search-project-for-symbol-at-point identifier (projectile-project-root)))
+#+end_src
+
+*** citre
+#+begin_src elisp
+(require 'citre)
+(require 'citre-config)
+(setq-default citre-enable-xref-integration t)
+#+end_src
+
+*** tramp:
+#+begin_src elisp
+(require 'tramp)
+#+end_src
+
+*** EAT (emulate a terminal)
+#+begin_src elisp
+(define-key evil-normal-state-map (kbd "SPC eat") 'eat-project)
+(setq eat-enable-yank-to-terminal t)
+
+(defun send-forward-word-to-eat ()
+  (interactive)
+  (eat-self-input 1 ?\M-f)
+)
+
+(defun send-backward-word-to-eat ()
+  (interactive)
+  (eat-self-input 1 ?\M-b)
+)
+
+;; There's no point in being in insert mode in eat terminal
+;; for semi char mode at least
+(map!
+ :mode eat-mode
+ :map eat-semi-char-mode-map
+ :e "C-w k" #'windmove-up
+ :e "C-w C-k" #'windmove-up
+
+ :e "C-w j" #'windmove-down
+ :e "C-w C-j" #'windmove-down
+
+ :e "C-w l" #'windmove-right
+ :e "C-w C-l" #'windmove-right
+
+ :e "C-w h" #'windmove-left
+ :e "C-w C-h" #'windmove-left
+
+ :e "C-w C-q" #'evil-quit
+ :e "C-w q" #'evil-quit
+
+ :e "<ESC><ESC>" #'evil-force-normal-state
+)
+
+(map!
+ :mode eat-mode
+ :map (eat-semi-char-mode-map eat-char-mode-map)
+ :i "M-<right>" #'send-forward-word-to-eat
+ :i "M-<left>" #'send-backward-word-to-eat
+
+ :n "s-v" #'eat-yank
+ :v "s-v" #'eat-yank
+ :i "s-v" #'eat-yank
+ :e "s-v" #'eat-yank
+
+ :n "p" #'eat-yank
+ :v "p" #'eat-yank
+
+ :m "C-S-p" #'eat-yank-from-kill-ring
+)
+#+end_src
+
+*** set emacs mode as initial for terminals
+#+begin_src elisp
+(evil-set-initial-state 'eat-mode 'normal)
+(evil-set-initial-state 'vterm-mode 'normal)
+#+end_src
+
+*** topsy
+#+begin_src elisp
+(add-hook 'prog-mode-hook #'topsy-mode)
+(add-hook 'magit-section-mode-hook #'topsy-mode)
+#+end_src
+
+*** protobuf
+
+#+begin_src elisp
+(add-to-list 'auto-mode-alist '("\\.proto\\'" . protobuf-mode))
+#+end_src
+
+*** terraform
+
+#+begin_src elisp
+(add-to-list 'auto-mode-alist '("\\.tf\\'" . terraform-mode))
+#+end_src
+
+*** Go stuff
+
+Set web mode engine for gohtml files
+
+#+begin_src elisp
+(setq web-mode-engines-alist '(("go" . "\\.gohtml\\'")))
+(add-to-list 'auto-mode-alist '("\\.gohtml\\'" . html-mode))
+(add-to-list 'auto-mode-alist '("\\.restclient\\'" . restclient-mode))
+#+end_src
+
+https://discourse.doomemacs.org/t/why-do-i-get-ugly-bright-tab-indentation-highlights/139/3
+^ he notes that go uses tabs by default
+
+https://stackoverflow.com/questions/29195496/how-to-turn-off-tab-highlighting-in-go-buffers
+turn off whitespace mode in go-mode since gofmt uses tabs by default
+
+see here as well: https://stackoverflow.com/questions/19094704/indentation-in-go-tabs-or-spaces
+#+begin_src elisp
+(setq whitespace-global-modes '(not go-mode))
+#+end_src
+
+Set go env variables when opening project
+#+begin_src elisp
+(require 'exec-path-from-shell)
+(setq exec-path-from-shell-arguments '("-l"))
+(defun go-update-env ()
+  "sets go related environment variables to match the project's version specified by goenv"
+  (interactive)
+  (if (directory-files (projectile-project-root) :MATCH ".go-version")
+      (progn
+        (dolist (var '("GOMODCACHE" "GOPATH" "GOROOT" "GOTOOLDIR" "GOVERSION"))
+          (add-to-list 'exec-path-from-shell-variables var))
+        (exec-path-from-shell-initialize)
+        (go-mode))
+    (message "warning: no .go-version file found in project root"))
+)
+#+end_src
+
+**** topsy with types and structs
+#+begin_src elisp
+(defun go--beginning-of-defun ()
+  "Return the line moved to by `beginning-of-defun'."
+  (when (> (window-start) 1)
+    (save-excursion
+      (goto-char (window-start))
+      ;;^[[:blank]]* match blank at the beginning (so no comments)
+      ;;want to match both struct/interfaces and functions definitions
+      ;;pretty printing to get rid of escapes: (type .* (struct | interface).|func .*(.*).*){$
+      ;; match type struct or type interface or func something () with { at the end
+      (re-search-backward "^[[:blank:]]*\\(type .* \\(struct\\|interface\\).\\|func .*[(].*[)].*\\){$" nil t 1)
+      (font-lock-ensure (point) (point-at-eol))
+      (buffer-substring (point) (point-at-eol)))))
+
+(after! topsy (add-to-list 'topsy-mode-functions '(go-mode . go--beginning-of-defun)))
+#+end_src
+
+**** use lsp-workspace-folders-add to manually add a project root in multi server projects instead
+from here: https://github.com/emacs-lsp/lsp-mode/issues/1978
++custom solution to find the correct go subdir in a project+ Don't use this
+
+*** Javascript
+#+begin_src elisp
+(setq js-indent-level 4)
+#+end_src
+
+*** LSP
+add some keybindings and stuff for lsp mode
+#+begin_src elisp
+(defun lsp-keybinds-and-stuff ()
+  (define-key evil-normal-state-map (kbd "SPC lx") 'lsp-treemacs-errors-list)
+  (define-key evil-normal-state-map (kbd "SPC fm") 'lsp-format-buffer)
+  (define-key evil-normal-state-map (kbd "gp") 'lsp-ui-doc-glance)
+  (evil-ex-define-cmd "fmt" 'lsp-format-buffer)
+  (define-key evil-motion-state-map (kbd "C-]") '+lookup/references)
+)
+(add-hook 'lsp-mode-hook 'lsp-keybinds-and-stuff)
+(setq lsp-ui-doc-show-with-mouse nil)
+(setq lsp-ui-peek-always-show nil)
+#+end_src
+
+file watchers, enabling for now, but this can make lsp slow
+#+begin_src elisp
+(setq lsp-enable-file-watchers nil)
+#+end_src
+
+execute code lens from cli
+#+begin_src elisp
+(define-key evil-normal-state-map (kbd "SPC ll") 'lsp-avy-lens)
+#+end_src
+
+*** magit
+**** map enter to open file in other window in diffs and stuff
+#+begin_src elisp
+(defun magit-mappings ()
+  (define-key magit-hunk-section-map (kbd "RET") 'magit-diff-visit-file-other-window)
+  (define-key magit-hunk-section-map (kbd "<S-return>") 'magit-diff-visit-worktree-file)
+  (define-key magit-hunk-section-map (kbd "<C-return>") 'magit-diff-visit-worktree-file-other-window)
+
+  (define-key magit-file-section-map (kbd "RET") 'magit-diff-visit-file-other-window)
+  (define-key magit-file-section-map (kbd "<S-return>") 'magit-diff-visit-worktree-file)
+  (define-key magit-file-section-map (kbd "<C-return>") 'magit-diff-visit-worktree-file-other-window)
+)
+
+(with-eval-after-load "magit" (magit-mappings))
+(add-hook 'git-gutter:update-hooks 'magit-after-revert-hook)
+(add-hook 'git-gutter:update-hooks 'magit-not-reverted-hook)
+#+end_src
+
+**** better evil magit movement
+#+begin_src elisp
+(map! :after magit
+      :map magit-mode-map
+      :n "l" #'evil-forward-char
+      :n "C-l" #'magit-log
+
+      :n "h" #'evil-backward-char
+      :n "C-h" #'magit-dispatch
+
+      :n "^" #'evil-first-non-blank
+      :n "w" #'evil-forward-word-begin
+
+      :n "b" #'evil-backward-word-begin
+      :n "C-b" #'magit-branch
+)
+#+end_src
+
+
+*** Company stuff: :TinyMac:
+#+begin_src elisp
+(setq company-idle-delay 0.5)
+(add-hook! 'prog-mode-hook (setq company-idle-delay (if (string= (system-name) "Jasons-MacBook.local") nil 0.3)))
+(add-hook! 'org-mode-hook (setq company-idle-delay nil)) ;; company is kind of annoying in org-mode
+(add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+#+end_src
+
+** Org stuff
+*** Capture templates
+#+begin_src elisp
+(after! org
+    (add-to-list 'org-capture-templates '("w" "Workout Item" entry (file+headline "~/orgmode/roam/iCloudOrg/workout-tracking.org" "Workout")
+    "* %U
+    :PROPERTIES:
+    :WEIGHT:
+    :REPS:
+    :VISIBILITY: folded
+    :END:
+    "))
+
+    (add-to-list 'org-capture-templates '("W" "Workout Day" entry (file+headline "~/orgmode/roam/iCloudOrg/workout-tracking.org" "Workout")
+    "* %u
+    :PROPERTIES:
+    :COLUMNS: %20ITEM %WEIGHT{max} %REPS{max}
+    :VISIBILITY: folded
+    :END:
+    "))
+)
+#+end_src
+
+*** insert seconds timestamp command
+#+begin_src elisp
+(defun my/org-insert-time-stamp-with-seconds ()
+  (interactive)
+  (insert (format-time-string "[%Y-%m-%d %a %H:%M:%S]" (current-time)))
+)
+(map! :after evil-org
+      :map org-mode-map
+      :ni "C-c m t s" #'my/org-insert-time-stamp-with-seconds
+)
+#+end_src
+
+*** org movement
+#+begin_src elisp
+(map! :after evil-org
+      :map org-mode-map
+      :ni "C-c C-u" #'outline-up-heading
+)
+#+end_src
+
+*** Prettier
+
+#+begin_src elisp
+(setq org-hide-emphasis-markers t)
+(setq org-superstar-headline-bullets-list '("🚀" "✿" "✐" "✦" "✸"))
+(setq org-startup-indented t)
+
+(after! org-modern-indent
+  (set-face-attribute 'org-modern-bracket-line nil :inherit 'font-lock-comment-face)
+)
+(add-hook 'org-mode-hook 'org-modern-indent-mode)
+#+end_src
+
+https://emacs.stackexchange.com/questions/48063/org-ellipsis-displayed-inorrectly-for-some-headlines-only
+  - workaround for issue with ellipsis not properly showing if there's a blank line before the start of the next headline
+More fun ellipsis, variable pitch needed or else we get the weird box,
+  - done via setting the org-ellipsis face in custom.el
+#+begin_src elisp
+(after! org
+  (setq org-ellipsis "  ⤵")
+  (setq org-cycle-separator-lines -1)
+  (setq org-tags-column 0)
+)
+#+end_src
+
+*** inline image width default
+#+begin_src elisp
+(after! org
+  (setq org-image-actual-width '(300))
+)
+#+end_src
+
+*** tables
+#+begin_src elisp
+(map! :after evil-org
+      :map org-mode-map
+      :n "C-c t s" #'org-table-shrink
+      :n "C-c t e" #'org-table-expand
+)
+#+end_src
+
+*** change `org-directory' to ~/orgmode/,
+#+begin_src elisp
+;; must be set BEFORE org loads so don't put this in an after! org block
+(setq org-directory "~/orgmode/")
+#+end_src
+
+*** org babel setup
+#+begin_src elisp
+(map! :after evil-org
+      :map emacs-lisp-mode-map
+      :n "C-c C-v C-o" #'org-babel-tangle-jump-to-org
+      :n "C-c C-v o" #'org-babel-tangle-jump-to-org
+)
+#+end_src
+
+**** protobuf highlighting in src block
+#+begin_src elisp
+(after! org
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   (append org-babel-load-languages '((protobuf-mode . t)))))
+#+end_src
+
+**** plantuml setup and download if doesn't exist
+might need to add plantuml to =org-babel-do-load-languages=
+#+begin_src elisp
+(let* ((plantuml_path (expand-file-name "~/orgmode/plantuml.jar")))
+  (setq org-plantuml-jar-path plantuml_path)
+  (setq plantuml-jar-path plantuml_path)
+  (if (file-exists-p plantuml_path)
+    nil
+    (plantuml-download-jar)
+  )
+)
+(setq plantuml-default-exec-mode 'jar)
+#+end_src
+
+**** Don't match ' in org mode src blocks
+https://emacs.stackexchange.com/questions/56071/smartparens-does-not-work-well-in-orgmode
+https://github.com/Fuco1/smartparens/issues/1017
+
+#+begin_src elisp
+;; I believe this sets the smart parens to match the major mode of the src block
+;; which is why we needed to change "elisp-mode" to "emacs-lisp-mode"
+(defun sp-in-src-block-p (_id _action _context)
+  (when (org-in-src-block-p)
+    (let* ((el (org-element-at-point))
+            (lang (org-element-property :language el))
+            (mode (intern (concat (if (string= lang "elisp") "emacs-lisp" lang) "-mode"))))
+      (memq mode sp-lisp-modes))))
+
+(after! smartparens
+  (require 'smartparens-config)
+  (sp-local-pair 'org-mode "\\[" "\\]")
+  ;;(sp-local-pair 'org-mode "$" "$")
+  (sp-local-pair 'org-mode "'" "'" :unless '(:add sp-in-src-block-p))
+  (sp-local-pair 'org-mode "=" "=" :actions '(rem))
+  (sp-local-pair 'org-mode "\\left(" "\\right)" :trigger "\\l(" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair 'org-mode "\\left[" "\\right]" :trigger "\\l[" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair 'org-mode "\\left\\{" "\\right\\}" :trigger "\\l{" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+  (sp-local-pair 'org-mode "\\left|" "\\right|" :trigger "\\l|" :post-handlers '(sp-latex-insert-spaces-inside-pair))
+)
+#+end_src
+
+*** org habit settings
+#+begin_src elisp
+(use-package! org-habit
+  :after org
+  :config
+  (setq org-habit-following-days 7
+        org-habit-preceding-days 35
+        org-habit-show-habits t
+        org-habit-show-habits-only-for-today nil))
+#+end_src
+
+*** Org edna mode settings
+#+begin_src elisp
+(add-hook 'org-mode-hook 'org-edna-mode)
+#+end_src
+
+*** Org notifications
+*NOTE* The SCHEDULED cookie has to be on a new line for org-yaap to recognize
+Needs to be *Alert* style instead of *Banner* style in osx settings
+#+begin_src elisp
+(setq alert-default-style 'osx-notifier)
+(after! org-yaap
+  (setq org-yaap-daily-alert 12)
+  (setq org-yaap-alert_before 5)
+  (setq org-yaap-overdue-alerts nil)
+  (setq org-yaap-persistent-click t)
+  (setq org-yaap-persistent-clock t)
+)
+(define-advice notifications-notify
+    (:override (&rest params) using-alert)
+  (alert (string-trim (replace-regexp-in-string "[^[:ascii:]]+" "" (plist-get params :body)))
+         :title (plist-get params :title)))
+(add-hook 'org-mode-hook 'org-yaap-mode)
+#+end_src
+
+*** Don't auto indent on RET in org-mode
+stole from here: https://github.com/doomemacs/doomemacs/issues/3872
+basically we can just rely on the org-auto-indent-mode instead
+
+this kinda breaks org auto list mode but meh
+
+#+begin_src elisp
+(map! :after evil-org
+      :map evil-org-mode-map
+      :i [return] #'+default/newline
+      :i "RET" #'+default/newline)
+#+end_src
+
+*** Org sticky header
+#+begin_src elisp
+(add-hook 'org-mode-hook 'org-sticky-header-mode)
+#+end_src
+
+*** org roam setup
+org roam ui setup
+#+begin_src elisp
+(use-package! websocket
+    :after org-roam)
+
+(use-package! org-roam-ui
+    :after org-roam ;; or :after org
+    :config
+    (setq org-roam-ui-sync-theme t
+          org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t))
+#+end_src
+
+#+begin_src elisp
+(after! org (setq org-roam-directory "~/orgmode/roam/") (setq org-roam-index-file "~/orgmode/roam/index.org"))
+(map! :after evil-org
+      :map evil-org-mode-map
+      :n "C-c n n" #'org-roam-buffer-toggle
+      :n "C-c n f" #'org-roam-node-find
+      :n "C-c n r" #'org-roam-node-random
+      :n "C-c n i" #'org-roam-node-insert
+      :n "C-c n o" #'org-id-get-create
+      :n "C-c n t" #'org-roam-tag-add
+      :n "C-c n a" #'org-roam-alias-add
+      :n "C-c n l" #'org-roam-buffer-toggle)
+#+end_src
+
+This fixes an issue with when there's some splits, the org roam find command truncates the search results:
+solution was taken from here: https://github.com/org-roam/org-roam/issues/2143#issuecomment-1087859891
+#+begin_src elisp
+(defun my/org-roam-node-read--to-candidate (node template)
+    "Return a minibuffer completion candidate given NODE.
+  TEMPLATE is the processed template used to format the entry."
+    (let ((candidate-main (org-roam-node--format-entry
+                           template
+                           node
+                           (1- (frame-width)))))
+      (cons (propertize candidate-main 'node node) node)))
+
+(advice-add 'org-roam-node-read--to-candidate :override #'my/org-roam-node-read--to-candidate)
+#+end_src
+
+setting up dailies
+#+begin_src elisp
+(after! org
+  (setq org-roam-dailies-directory "daily/")
+
+  (setq org-roam-dailies-capture-templates
+        '(("d" "default" entry
+          "* %?"
+          :target (file+head "%<%Y-%m-%d>.org"
+                              "#+title: %<%Y-%m-%d>\n"))))
+)
+#+end_src
+
+*** agenda
+
+**** org agenda files
+#+begin_src elisp
+(setq org-agenda-files
+  (list (expand-file-name "AGENDA_FILE.org")))
+#+end_src
+
+**** org agenda format
+#+begin_src elisp
+(after! org
+  (setq org-agenda-prefix-format
+    '((agenda . " %i %16:c %?-12t% s")
+      (todo . " %i %-12:c")
+      (tags . " %i %-12:c")
+      (search . " %i %-12:c")))
+)
+#+end_src
+
+**** ignore scheduled todos in agenda
+
+#+begin_src elisp
+(after! org
+  (setq org-agenda-todo-ignore-scheduled 'all)
+)
+#+end_src
+
+**** shorter agenda now string
+#+begin_src elisp
+(after! org
+  (setq org-agenda-current-time-string "← now ─────────")
+  (setq org-agenda-current-time-string "󰇥 󰇥 󰇥 〰〰〰〰〰〰")
+)
+#+end_src
+
+**** skip deadline and scheduled
+#+begin_src elisp
+(after! org
+  (setq org-agenda-skip-scheduled-if-done t)
+  (setq org-agenda-skip-deadline-if-done t)
+)
+#+end_src
+
+**** agenda prev/next frame mapping
+#+begin_src elisp
+(map! :after evil-org-agenda
+      :map evil-org-agenda-mode-map
+      :m "[" nil
+      :m "]" nil
+      :m "[a" #'org-agenda-earlier
+      :m "]a" #'org-agenda-later
+      :m "[F" #'+evil/previous-frame
+      :m "]F" #'+evil/next-frame
+)
+#+end_src
+
+*** Load health-template
+https://www.youtube.com/watch?app=desktop&v=YmQ1CYMz-OY
+#+begin_src elisp
+(use-package! health-template)
+#+end_src
+
+** evil mode
+Keybindings for some tools
+
+*** qol changes
+
+very annoying thing where ^ wouldn't respect visual lines, but C-a does which was
+doom/backward-to-bol-or-indent so might as well just map it
+#+begin_src elisp
+(map! :after evil
+      :m "^" nil
+      :m "^" #'doom/backward-to-bol-or-indent
+)
+#+end_src
+
+*** modeline
+Show text instead of icon for vim mode
+#+begin_src elisp
+(setq doom-modeline-modal-icon nil)
+#+end_src
+
+*** yanking use the consult version if using vertico
+#+begin_src elisp :tangle no
+
+(define-key evil-normal-state-map (kbd "C-S-p") 'yank-from-kill-ring)
+(define-key evil-insert-state-map (kbd "C-S-p") 'yank-from-kill-ring)
+#+end_src
+
+*** vertico commands
+#+begin_src elisp
+(after! vertico
+  (define-key evil-normal-state-map (kbd "SPC F") 'projectile-find-file)
+  (define-key evil-normal-state-map (kbd "SPC G") '+vertico/project-search)
+  (define-key evil-visual-state-map (kbd "SPC G") '+vertico/project-search)
+
+  (define-key vertico-map (kbd "C-d") 'vertico-scroll-up)
+  (define-key vertico-map (kbd "C-u") 'vertico-scroll-down)
+  (define-key vertico-map (kbd "C-w C-w") 'previous-window-any-frame)
+
+  (define-key vertico-map (kbd "C-S-n") 'vertico-next-group)
+  (define-key vertico-map (kbd "C-S-p") 'vertico-previous-group)
+
+  (define-key evil-normal-state-map (kbd "C-S-p") 'consult-yank-from-kill-ring)
+  (define-key evil-insert-state-map (kbd "C-S-p") 'consult-yank-from-kill-ring)
+)
+#+end_src
+
+*** ivy commands :UNUSED:
+#+begin_src elisp :tangle no
+;; allow evil scrolling in mini buffer
+(after! ivy
+  (define-key evil-normal-state-map (kbd "SPC F") '+ivy/projectile-find-file)
+  (define-key evil-normal-state-map (kbd "SPC G") '+ivy/project-search)
+  (define-key evil-visual-state-map (kbd "SPC G") '+ivy/project-search)
+
+  (define-key ivy-minibuffer-map (kbd "<C-S-d>") 'evil-delete-back-to-indentation)
+  (define-key ivy-minibuffer-map (kbd "C-d") 'ivy-scroll-up-command)
+  (define-key ivy-minibuffer-map (kbd "C-u") 'ivy-scroll-down-command)
+)
+#+end_src
+
+*** navigation
+#+begin_src elisp
+(define-key evil-normal-state-map (kbd "C-t") 'pop-global-mark)
+(better-jumper-mode +1)
+(define-key evil-motion-state-map (kbd "<C-o>") 'better-jumper-jump-backward)
+(define-key evil-motion-state-map (kbd "<C-i>") 'better-jumper-jump-forward)
+(setq-default evil-escape-key-sequence "kj")
+#+end_src
+
+*** ranger
+#+begin_src elisp
+(evil-define-command evil-ex-ranger (path)
+  (interactive "<a>")
+  (if
+      (= (length (window-list)) 1)
+      (if path (ranger-find-file (expand-file-name path)) (ranger))
+      (dired (expand-file-name path)))
+)
+(evil-ex-define-cmd "e" #'evil-ex-ranger)
+(setq ranger-show-hidden t)
+#+end_src
+
+*** quitting
+:q should kill the current buffer rather than quitting emacs entirely
+Need to type out :quit to close emacs
+#+begin_src elisp
+(evil-ex-define-cmd "q" 'kill-this-buffer)
+(evil-ex-define-cmd "quit" 'evil-quit)
+#+end_src
+
+*** subword
+this thing lets us use move commands on things like camel case and stuff
+The second line treats _ as a "whitespace" character so that evil-forward-begin stops at "_" characters
+-> is somewhat of a fix for weird behaviour where evil-forward-begin gets stuck with words with underscore
+#+begin_src elisp
+(global-subword-mode)
+(add-hook! 'prog-mode-hook (modify-syntax-entry ?_ "-"))
+(add-hook! 'org-mode-hook (modify-syntax-entry ?_ "-"))
+#+end_src
+
+skip dashes and underscores in forward word begin and stuff
+#+begin_src elisp
+(defun skip-dash-forward (n &rest foo)
+  (when (or (eq (char-after (point)) ?-) (eq (char-after (point)) ?_))
+    (forward-char)))
+
+(defun skip-dash-forward-end (n &rest foo)
+  (if (or (eq (char-after (point)) ?-) (eq (char-after (point)) ?_))
+      (forward-char)))
+
+(defun skip-dash-backward (n &rest foo)
+  (when (or (eq (char-before (point)) ?-) (eq (char-before (point)) ?_))
+    (backward-char)))
+
+(advice-add 'evil-forward-word-begin :after #'skip-dash-forward)
+(advice-add 'evil-forward-word-end :after #'skip-dash-forward-end)
+(advice-add 'evil-backward-word-begin :before #'skip-dash-backward)
+#+end_src
+
+*** workspaces, persp mode keybinds :Doom:
+
+#+begin_src elisp
+(define-key evil-normal-state-map (kbd "C-c p [") #'+workspace/swap-left)
+(define-key evil-normal-state-map (kbd "C-c p ]") #'+workspace/swap-right)
+#+end_src
+
+minor workaround so workspace switching doesn't have an off by one error
+#+begin_src elisp
+(evil-define-command my-workspace-switch-next (&optional count)
+  (interactive "<c>")
+  (if count (+workspace/switch-to (- count 1)) (+workspace/cycle +1))
+)
+
+(evil-define-command my-workspace-switch-prev (&optional count)
+  (interactive "<c>")
+  (if count (+workspace/switch-to (- count 1)) (+workspace/cycle -1))
+)
+
+(define-key evil-normal-state-map (kbd "gt") 'my-workspace-switch-next)
+(define-key evil-normal-state-map (kbd "gT") 'my-workspace-switch-prev)
+#+end_src
+
+*** prefer hs-minor-mode
+simpler than the other ones and works for my use case well enough, + fast + built in
+ts-fold is slow as hell
+vimish-fold doesn't have recursive opening
+#+begin_src elisp
+(map! :after hideshow
+      :mode prog-mode
+      :n "zC" nil
+      :n "zO" nil
+      :n "zo" nil
+      :n "zc" nil
+      :n "za" nil
+      :n "zC" #'hs-hide-all
+      :n "zO" #'hs-show-all
+      :n "zo" #'hs-show-block
+      :n "zc" #'hs-hide-block
+      :n "za" #'hs-toggle-hiding
+)
+#+end_src
+
+*** flycheck binding
+#+begin_src elisp
+(map! :after flycheck
+      :mode flycheck-mode
+      :n "[e" nil
+      :n "]e" nil
+      :n "[e" #'flycheck-previous-error
+      :n "]e" #'flycheck-next-error
+)
+#+end_src
+
+* file:~/.doom.d/custom.el
+:PROPERTIES:
+:header-args: :tangle ~/.doom.d/custom.el :noeval
+:END:
+
+#+begin_src elisp
+(put 'customize-variable 'disabled nil)
+(put 'customize-face 'disabled nil)
+(put 'customize-group 'disabled nil)
+(put 'list-timers 'disabled nil)
+(custom-set-variables
+ '(safe-local-variable-values
+   '((eval if
+      (string=
+       (system-name)
+       "Jasons-MacBook.local")
+      (verb-mode))
+     (eval add-hook 'after-save-hook
+      (lambda nil
+        (org-babel-tangle))
+      nil t)
+     (eval progn
+      (defun file-symlink-p
+          (FILENAME)
+        nil)) ;; for .dir-locals in orgmode, which makes it so we don't expand symlinks, so projectile stays in orgmode project
+     (eval add-hook 'after-save-hook
+      (lambda nil
+        (if
+            (y-or-n-p "Tangle?")
+            (org-babel-tangle)))
+      nil t))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(+workspace-tab-selected-face ((t (:inherit all-the-icons-pink :underline t))))
+ '(org-ellipsis ((t (:inherit variable-pitch :foreground "#a89984"))))
+ '(dired-header ((t (:inherit default :background "unspecified" :foreground "unspecified"))))
+ ;; '(highlight ((t (:background "LightYellow1")))) ;;only needed for solarized-light if i want highlighting to pop
+)
+#+end_src
+
+* file:~/.doom.d/packages.el
+:PROPERTIES:
+:header-args: :tangle ~/.doom.d/packages.el :noeval
+:END:
+
+** MELPA, ELPA, emacsmirror packages
+*** development
+
+**** Eat terminal is amazing
+#+begin_src elisp
+(package! eat :recipe (:host codeberg :repo "akib/emacs-eat" :files ("*.el" ("term" "term/*.el") "*.texi"
+               "*.ti" ("terminfo/e" "terminfo/e/*")
+               ("terminfo/65" "terminfo/65/*")
+               ("integration" "integration/*")
+               (:exclude ".dir-locals.el" "*-tests.el"))) :pin "f01afd6c24289f0f3b3b0409baae7c266adfd43b")
+#+end_src
+
+**** exec path from shell
+This is good for if we need to change go version or something via goenv
+#+begin_src elisp
+(package! exec-path-from-shell :pin "ddd24dc823de9a94435b4d8ea7569161657f31e2")
+#+end_src
+
+**** Protobuf mode from the protobuf repo
+#+begin_src elisp
+(package! protobuf-mode :recipe (:host github :repo "protocolbuffers/protobuf" :files ("editors/protobuf-mode.el")) :pin "d73406a0077d7e9d8800abebc6e32f2af0e602cc")
+#+end_src
+
+**** citre
+#+begin_src elisp
+(package! citre :pin "4626ada80fabea6b62935567acc1cb8dad607016")
+#+end_src
+
+*** THEMES
+#+begin_src elisp
+(package! solarized-theme :pin "0f0b1129cf51c85904f9e015da4fcca5f5f7a4ce")
+(package! modus-themes :pin "7661b78509c86bb8f4faf8f9cf605dfbb29c18a2")
+#+end_src
+
+*** Org packages:
+#+begin_src elisp
+;; needed for org-roam-ui
+(unpin! org-roam)
+;; fucking sick graph visualization of org-roam
+(package! org-roam-ui :pin "5ac74960231db0bf7783c2ba7a19a60f582e91ab")
+
+;; todo functions
+(package! org-edna :pin "de6454949045453e0fa025e605b445c3ca05c62a")
+
+;; using org as a restclient
+(if (string= (system-name) "Jasons-MacBook.local") (package! verb :pin "4bc23d78a723c6b184a949507b3061c8da8e831c"))
+
+;; make headers stick to top of window if it leaves the screen
+(package! org-sticky-header :pin "697875935b04b25c8229b9155a1ea0cab3ebe629")
+(package! org-super-agenda :pin "f4f528985397c833c870967884b013cf91a1da4a")
+
+(package! org-modern-indent :recipe (:host github :repo "jdtsmith/org-modern-indent") :pin "85f95d093d9b2d8fb9e4a705529eac4e2a888e87")
+
+(package! alert :pin "c762380ff71c429faf47552a83605b2578656380")
+(package! org-yaap :recipe (:host gitlab :repo "tygrdev/org-yaap") :pin "bab336dc62ca0ec953b1c3644db9bda7c7a9506b")
+
+(when (not (string= (system-name) "MBP-20143438.local")) (package! ob-ledger :recipe (:local-repo "lisp/ob-ledger")))
+
+(package! org-pandoc-import
+  :recipe (:host github
+           :repo "tecosaur/org-pandoc-import"
+           :files ("*.el" "filters" "preprocessors")))
+#+end_src
+
+*** QOL:
+
+#+begin_src elisp
+;; scope colors
+(package! prism :pin "169b49afa91e69d35b8756df49ed3ca06f418d35")
+;; fast af search
+(package! ripgrep :pin "b6bd5beb0c11348f1afd9486cbb451d0d2e3c45a")
+;; better mark navigation like C-o and C-i for vim
+(package! better-jumper :pin "47622213783ece37d5337dc28d33b530540fc319")
+;; sticky breadcrumb like header for func declaration if the declaration leaves the screen
+(package! topsy :pin "86d4234e4a0e9d2f5bf0f1114ea9893da48e77d1")
+;; makes f F navigation easier
+(package! evil-quickscope :pin "37a20e4c56c6058abf186ad4013c155e695e876f")
+
+;; better window focusing
+(package! zoom :pin "2104abb074682db79b9ff3a748e8e2e760a4d8cf")
+
+;; handy feature to snip a section from another buffer (or current buffer) and peek it in the current buffer
+(package! peek :recipe (:type git :host sourcehut :repo "meow_king/peek") :pin "c7d86147ea3fced6c394a9a58467872133da5cba")
+
+;; partial horizontal scroll
+(package! phscroll :recipe (:host github :repo "misohena/phscroll" :files ("*.el")) :pin "16aa0f1b85ce14364e01d7c40d6f1fe28700c14c")
+
+;; health
+(package! health-template :recipe (:host gitlab :repo "dto/health-template" :files ("*.el")) :pin "d9e25fb65f5587b3a7d5c64f0c9f773d37ead23b")
+
+;; better indent bars
+(when IS-MAC (package! indent-bars :recipe (:host github :repo "jdtsmith/indent-bars" :files ("*.el"))  :pin "4dc2b9e329cf7497a3f02939e0cff816c7295f8b"))
+
+;; other indent package
+(package! highlight-indent-guides :pin "cf352c85cd15dd18aa096ba9d9ab9b7ab493e8f6")
+#+end_src
+
+*** Fun stuff:
+#+begin_src elisp
+;; epub reader
+(when (not (string= (system-name) "MBP-20143438.local")) (package! nov :pin "58c35e677e11f5c04a702b42ac753c80c8955089"))
+#+end_src
+
+*** Disable some packages
+#+begin_src elisp
+(when (string= (system-name) "MBP-20143438.local")
+  (progn
+    (package! gnuplot :disable t)
+    (package! gnuplot-mode :disable t)))
+#+end_src
+
+* file:~/.doom.d/init.el
+:PROPERTIES:
+:header-args: :tangle ~/.doom.d/init.el :noeval
+:VISIBILITY: folded
+:END:
+
+#+begin_src elisp
+;;; init.el -*- lexical-binding: t; -*-
+
+;; This is really useful so we can navigate the visual lines (respecting word wrap) instead of physical lines
+;; Has to be in init.el cause it needs to be set before evil loads
+(setq evil-respect-visual-line-mode t)
+
+(doom! :input
+       ;;bidi              ; (tfel ot) thgir etirw uoy gnipleh
+       ;;chinese
+       ;;japanese
+       ;;layout            ; auie,ctsrnm is the superior home row
+
+       :completion
+       (company +childframe)           ; the ultimate code completion backend
+       ;;helm              ; the *other* search engine for love and life
+       ;;ido               ; the other *other* search engine...
+       ;;(ivy +fuzzy +icons +prescient)               ; a search engine for love and life
+       (vertico +icons)           ; the search engine of the future
+
+       :ui
+       ;;deft              ; notational velocity for Emacs
+       doom              ; what makes DOOM look the way it does
+       doom-dashboard    ; a nifty splash screen for Emacs
+       ;;doom-quit         ; DOOM quit-message prompts when you quit Emacs
+       ;;(emoji +unicode)  ; 🙂
+       hl-todo           ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
+       ;;hydra
+       ;;(:when (not (string= (system-name) "Jasons-MacBook.local")) indent-guides)     ; highlighted indent columns
+       (ligatures +iosevka)         ; ligatures and symbols to make your code pretty again
+       ;;minimap           ; show a map of the code on the side
+       modeline          ; snazzy, Atom-inspired modeline, plus API
+       nav-flash         ; blink cursor line after big motions
+       ;;neotree           ; a project drawer, like NERDTree for vim
+       ophints           ; highlight the region an operation acts on
+       (popup +defaults)   ; tame sudden yet inevitable temporary windows
+
+       ;;tabs              ; a tab bar for Emacs
+       (treemacs +lsp)     ; a project drawer, like neotree but cooler
+       ;;unicode           ; extended unicode support for various languages
+       (vc-gutter +pretty)          ; vcs diff in the fringe
+       vi-tilde-fringe   ; fringe tildes to mark beyond EOB
+       ;;window-select     ; visually switch windows
+       workspaces        ; tab emulation, persistence & separate workspaces
+       zen               ; distraction-free coding or writing
+
+       :editor
+       (evil +everywhere); come to the dark side, we have cookies
+       ;;file-templates    ; auto-snippets for empty files
+       fold              ; (nigh) universal code folding
+       format  ; automated prettiness
+       ;;god               ; run Emacs commands without modifier keys
+       ;;lispy             ; vim for lisp, for people who don't like vim
+       multiple-cursors  ; editing in many places at once
+       ;;objed             ; text object editing for the innocent
+       ;;parinfer          ; turn lisp into python, sort of
+       rotate-text       ; cycle region at point between text candidates
+       snippets          ; my elves. They type so I don't have to
+       word-wrap         ; soft wrapping with language-aware indent
+
+       :emacs
+       (dired +icons +ranger)             ; making dired pretty [functional]
+       ;; electric          ; smarter, keyword-based electric-indent
+       ibuffer         ; interactive buffer management
+       undo              ; persistent, smarter undo for your inevitable mistakes
+       vc                ; version-control and Emacs, sitting in a tree
+
+       :term
+       ;;eshell            ; the elisp shell that works everywhere
+       ;;shell             ; simple shell REPL for Emacs
+       ;;term              ; basic terminal emulator for Emacs
+       ;;vterm             ; the best terminal emulation in Emacs
+
+       :checkers
+       syntax              ; tasing you for every semicolon you forget
+       (spell +flyspell) ; tasing you for misspelling mispelling
+       grammar           ; tasing grammar mistake every you make
+
+       :tools
+       ;;ansible
+       ;;biblio            ; Writes a PhD for you (citation needed)
+       (debugger +lsp)          ; FIXME stepping through code, to help you add bugs
+       ;;direnv
+       ;;(docker +lsp)
+       ;;editorconfig      ; let someone else argue about tabs vs spaces
+       ;;ein               ; tame Jupyter notebooks with emacs
+       (eval +overlay)     ; run code, run (also, repls)
+       ;;gist              ; interacting with github gists
+       lookup              ; navigate your code and its documentation
+       lsp               ; M-x vscode
+       (magit +forge)             ; a git porcelain for Emacs
+       make              ; run make tasks from Emacs
+       ;;pass              ; password manager for nerds
+       pdf               ; pdf enhancements
+       ;;prodigy           ; FIXME managing external services & code builders
+       rgb               ; creating color strings
+       ;;taskrunner        ; taskrunner for all your projects
+       terraform         ; infrastructure as code
+       ;;tmux              ; an API for interacting with tmux
+       tree-sitter       ; syntax and parsing, sitting in a tree...
+       ;;upload            ; map local to remote projects via ssh/ftp
+
+       :os
+       (:if IS-MAC macos)  ; improve compatibility with macOS
+       tty               ; improve the terminal Emacs experience
+
+       :lang
+       ;;agda              ; types of types of types of types...
+       ;;beancount         ; mind the GAAP
+       ;;(cc +lsp)         ; C > C++ == 1
+       ;;clojure           ; java with a lisp
+       ;;common-lisp       ; if you've seen one lisp, you've seen them all
+       ;;coq               ; proofs-as-programs
+       ;;crystal           ; ruby at the speed of c
+       ;;csharp            ; unity, .NET, and mono shenanigans
+       data              ; config/data formats
+       ;;(dart +flutter)   ; paint ui and not much else
+       ;;dhall
+       ;;elixir            ; erlang done right
+       ;;elm               ; care for a cup of TEA?
+       emacs-lisp        ; drown in parentheses
+       ;;erlang            ; an elegant language for a more civilized age
+       ;;ess               ; emacs speaks statistics
+       ;;factor
+       ;;faust             ; dsp, but you get to keep your soul
+       ;;fortran           ; in FORTRAN, GOD is REAL (unless declared INTEGER)
+       ;;fsharp            ; ML stands for Microsoft's Language
+       ;;fstar             ; (dependent) types and (monadic) effects and Z3
+       ;;gdscript          ; the language you waited for
+       (go +lsp +tree-sitter)         ; the hipster dialect
+       (graphql +lsp)    ; Give queries a REST
+       ;;(haskell +lsp)    ; a language that's lazier than I am
+       ;;hy                ; readability of scheme w/ speed of python
+       ;;idris             ; a language you can depend on
+       (json +lsp +tree-sitter)              ; At least it ain't XML
+       (:when (not (string= (system-name) "Jasons-MacBook.local")) (java +lsp +tree-sitter))       ; the poster child for carpal tunnel syndrome
+       (javascript +lsp +tree-sitter)        ; all(hope(abandon(ye(who(enter(here))))))
+       ;;julia             ; a better, faster MATLAB
+       (:when (not (string= (system-name) "Jasons-MacBook.local")) (kotlin +tree-sitter))            ; a better, slicker Java(Script)
+       ;;latex             ; writing papers in Emacs has never been so fun
+       ;;lean              ; for folks with too much to prove
+       (:when (not (string= (system-name) "MBP-20143438.local")) ledger)            ; be audit you can be
+       ;;lua               ; one-based indices? one-based indices
+       markdown          ; writing docs for people to ignore
+       ;;nim               ; python + lisp at the speed of c
+       ;;nix               ; I hereby declare "nix geht mehr!"
+       ;;ocaml             ; an objective camel
+       (org
+            +present
+            +hugo
+            +roam2
+            +dragndrop
+            +pretty
+            +gnuplot)               ; organize your plain life in plain text
+       ;;php               ; perl's insecure younger brother
+       ;;plantuml          ; diagrams for confusing people more
+       ;;purescript        ; javascript, but functional
+       (python +lsp +pyright +pyenv +poetry +tree-sitter)            ; beautiful is better than ugly
+       ;;qt                ; the 'cutest' gui framework ever
+       ;;racket            ; a DSL for DSLs
+       ;;raku              ; the artist formerly known as perl6
+       (rest +jq)              ; Emacs as a REST client
+       ;;rst               ; ReST in peace
+       ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
+       ;;(rust +lsp)       ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
+       ;;scala             ; java, but good
+       ;;(scheme +guile)   ; a fully conniving family of lisps
+       (sh +lsp +tree-sitter)                ; she sells {ba,z,fi}sh shells on the C xor
+       ;;sml
+       ;;solidity          ; do you need a blockchain? No.
+       ;;swift             ; who asked for emoji variables?
+       ;;terra             ; Earth and Moon in alignment for performance.
+       (web +lsp +tree-sitter)               ; the tubes
+       (yaml +lsp +tree-sitter)              ; JSON, but readable
+       ;;zig               ; C, but simpler
+
+       :email
+       ;;(mu4e +org +gmail)
+       ;;notmuch
+       ;;(wanderlust +gmail)
+
+       :app
+       ;;calendar
+       ;;emms
+       ;;everywhere        ; *leave* Emacs!? You must be joking
+       ;;irc               ; how neckbeards socialize
+       ;;(rss +org)        ; emacs as an RSS reader
+       ;;twitter           ; twitter client https://twitter.com/vnought
+
+       :config
+       ;;literate
+       (default +bindings +smartparens))
+#+end_src
+
+* file:~/.doom.d/lisp/ob-ledger/ob-ledger.el
+:PROPERTIES:
+:header-args: :tangle ~/.doom.d/lisp/ob-ledger/ob-ledger.el :mkdirp yes :noeval
+:VISIBILITY: folded
+:END:
+
+#+begin_src elisp
+;;; ob-ledger.el --- Babel Functions for Ledger      -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2010-2020 Free Software Foundation, Inc.
+
+;; Author: Eric S Fraga
+;; Keywords: literate programming, reproducible research, accounting
+;; Homepage: https://orgmode.org
+
+;; This file is part of GNU Emacs.
+
+;; GNU Emacs is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; GNU Emacs is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Org-Babel support for evaluating ledger entries.
+;;
+;; This differs from most standard languages in that
+;;
+;; 1) there is no such thing as a "session" in ledger
+;;
+;; 2) we are generally only going to return output from the ledger program
+;;
+;; 3) we are adding the "cmdline" header argument
+;;
+;; 4) there are no variables
+
+;;; Code:
+(require 'ob)
+
+(defvar org-babel-default-header-args:ledger
+  '((:results . "output") (:cmdline . "bal"))
+  "Default arguments to use when evaluating a ledger source block.")
+
+(defun org-babel-execute:ledger (body params)
+  "Execute a block of Ledger entries with org-babel.  This function is
+called by `org-babel-execute-src-block'."
+  (message "executing Ledger source code block")
+  (let ((cmdline (cdr (assq :cmdline params)))
+        (in-file (org-babel-temp-file "ledger-"))
+  (out-file (org-babel-temp-file "ledger-output-")))
+    (with-temp-file in-file (insert body))
+    (message "%s" (concat "ledger"
+        " -f " (org-babel-process-file-name in-file)
+        " " cmdline))
+    (with-output-to-string
+      (shell-command (concat "ledger"
+           " -f " (org-babel-process-file-name in-file)
+           " " cmdline
+           " > " (org-babel-process-file-name out-file))))
+    (with-temp-buffer (insert-file-contents out-file) (buffer-string))))
+
+(defun org-babel-prep-session:ledger (_session _params)
+  (error "Ledger does not support sessions"))
+
+(provide 'ob-ledger)
+
+;;; ob-ledger.el ends here
+#+end_src
+
+* Local variables
+;; Local Variables:
+;; eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle)) nil t)
+;; End:

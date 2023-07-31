@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: org-properties
+# key: <p
+# uuid: <p
+# --
+:PROPERTIES:
+:$0
+:END:
